@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>jQuery Text Area Order Input</title>
+      <style>
+        .myInputClass {
+            width: 120px;
+        }
+        .myOutputClass {
+            width: 240px;
+        }
+        table, td{
+           margin: 0px;
+           border-collapse: collapse;
+           padding: 0px;
+           border-spacing: 0px;
+           vertical-align:top;
+         }
+         table th {
+           border: 1px solid #6C220B;
+           border-spacing: 0px;
+           padding: 0px;
+           text-align: left;
+         }
+         table#myOutputTableId {
+           border: 0px;
+           padding: 0px;
+           margin: 0px;
+           align: top;  
+         }
+         br { display : none;}
+         [xcontentEditable=true]:empty:before {
+            content: attr(placeholder);
+            opacity: 0.6;
+          }
+      </style>
+      <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script>
+        storeflag = true;
+        attribstart = "";
+        attribend   = "";
+        output_result = "";
+        var row = 0;
+        var storeIndex = 0;
+        var productIndex = 0;
+        var thisstore_id=0;
+
+        function appendNewRow(inputType)
+        {
+            row++;
+            var markup =  "<tr id='"+row+"' store-id='"+thisstore_id+"'><td input-row='"+row+"' input-type='"+inputType+"' class='myInputClass' height='auto' contenteditable='true' placeholder='Next'></td><td output-row='"+row+"' class='myOutputClass'></td><td extra-row='"+row+"' class='extra'></td></tr>";
+            $("table tbody").append(markup);
+            document.getElementById(row).getElementsByClassName('myInputClass')[0].focus();
+        }
+
+        function getStore(thisstore) 
+        {
+//            alert("getStore: "+thisstore);
+            $.ajax({
+                url: 'ajax_getstore',
+                data: "store="+thisstore,
+                method: "GET",
+                dataType: "json",
+                cache: false,
+                success: function (data) {
+                    goodjson = JSON.parse(data);
+                    var markup ="";
+                    if (goodjson.length > 1) {
+                        $.each(goodjson, function (thisname, thisvalue) {
+                            var output = attribstart+thisvalue.fields.name+attribend;
+                            markup = markup + "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - " +output+ "</td></tr>";
+                        });     
+                    } else {
+                        $('[input-row="' + row + '"]').parent().attr('store-id', goodjson[0].pk); 
+                        $('[input-row="' + row + '"]').attr('store-id', goodjson[0].pk);
+                        $('[output-row="' + row + '"]').attr('store-id', goodjson[0].pk);
+                        $('[output-row="' + row + '"]').attr('input-type', 'store');
+                        $('[output-row="' + row + '"]').html(attribstart+goodjson[0].fields.name+attribend);
+                    }
+                    thisstore_id = goodjson[0].pk;
+                    if ($('table tbody tr').length == row) {
+                        appendNewRow('product');
+                    }
+                }, // End success.
+                error: function () {
+                    alert('error');
+                },
+            }); //End Ajax.
+            attribstart = "<b>";
+            attribend =   "</b>";
+            storeflag = false; //reset storeflag.
+            return thisstore_id;
+        } // End Function.
+
+        function getProduct(thisstore_id, thisproduct_nickname) 
+        {
+            qty = parseInt(thisproduct_nickname);
+            if (isNaN(qty)) {
+                qty = '1';
+            } else {
+                thisproduct_nickname = thisproduct_nickname.replace(qty,'');
+            }
+            $.ajax({
+                url: 'ajax_getproduct',
+                data: 'store_id='+thisstore_id+'&qty='+qty+'&product_nickname='+thisproduct_nickname,
+                method: "GET",
+                dataType: "json",
+                cache: false,
+                success: function (data) {
+                    goodjson = JSON.parse(data);
+                    var markup ="";
+                    if (goodjson.length > 1) {
+                        $.each(goodjson, function (thisname, thisvalue) {
+                            var output = attribstart+thisvalue.fields.product_name+attribend;
+                            markup = markup + "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - " +output+ "<br></td></tr>";
+                            row=row+1;
+                        });     
+                    } else {
+
+                    //    $('[input-row="' + row + '"]').html(thisproduct_nickname); // Fixes an ajax bug.
+                        $('[output-row="' + row + '"]').attr('input-type', 'product');
+                        $('[output-row="' + row + '"]').attr('store-id', thisstore_id);
+                        thisoutput = attribstart;
+                        thisoutput += qty;
+                        thisoutput += ' '+goodjson[0].fields.product_default_uom_code;
+                        thisoutput += ' '+goodjson[0].fields.product_itemnum;
+                        thisoutput += ' '+goodjson[0].fields.product_name;
+                        thisoutput += attribend;
+                        $('[output-row="' + row + '"]').html(thisoutput);
+                        $('[extra-row="' + row + '"]').html(goodjson[0].fields.supplier_name);
+                        
+                    }
+                    if ($('table tbody tr').length == row) {
+                        appendNewRow('product');
+                    }
+                                
+                }, // End success.
+                error: function (xhr, httpStatusMessage, customErrorMessage) {
+                    $('[output-row="' + row + '"]').attr('input-type', 'product');
+                    $('[output-row="' + row + '"]').attr('store-id', thisstore_id);
+                    $('[output-row="' + row + '"]').html("Not Found");
+                    $('[extra-row="' + row + '"]').html("Error");
+                    if ($('table tbody tr').length == row) {
+                        appendNewRow('product');
+                    }
+
+                },
+
+            }); //End Ajax.
+
+        } // End Function getProduct.
+
+
+    $(document).ready(function(){
+        document.getElementById('1').getElementsByClassName('myInputClass')[0].focus();
+        lastKey = 13; 
+
+        $(document).on("click",".myInputClass", function () {
+            row = $(this).attr('input-row'); 
+            thisstore_id = $(this).attr('store-id');
+        });
+        document.addEventListener("keydown", (e) => {
+            switch (e.key) {
+                case "ArrowUp":
+                    if (row > 1) {
+                        row--;
+                        thisstore_id = $('[output-row="' + row + '"]').attr('store-id');
+                        document.getElementById(row).getElementsByClassName('myInputClass')[0].focus();
+                    }
+                break;
+                case "ArrowDown":
+                    if (row < $('table tbody tr').length) {
+                        row++;
+                        thisstore_id = $('[output-row="' + row + '"]').attr('store-id');
+                        document.getElementById(row).getElementsByClassName('myInputClass')[0].focus();
+                    }
+                break;
+            }
+          });
+
+        $("tbody").on('keypress', ".myInputClass", (function(event){
+            if (event.which == 13) {    // Enter Key.
+                event.preventDefault(); // prevents <br> from being inserted.
+                attribstart = "";
+                attribend   = "";
+                row = Number($(this).attr('input-row'));
+                thishtml = $(this).html();
+                if ($(this).text().length > 0) {
+                    x = $(this).text();
+                    if (storeflag == true) {
+                        thisstore_id = getStore(x);
+                        temprow = row + 1;
+                        tempstoreid = $('[output-row="' + temprow + '"]').attr('store-id')
+//                        while ( tempstoreid == thisstore_id) {
+//                            temprow++;
+//                            tempstoreid = $('[output-row="' + temprow + '"]').attr('store-id')
+//                          }
+                    } else {
+                        getProduct(thisstore_id,x); 
+                    }
+                } else {
+                    $(this).text("---");
+                    $(this).attr('store-id','---');
+                    $(this).parent().attr('store-id', '---');
+                    appendNewRow('store');
+                    storeflag = true;
+                    $('[input-row="' + row + '"]').find('br').remove(); // Fixes an ajax bug.
+
+                }
+
+           } //end if
+           lastKey = event.which;
+        }));         
+     });    
+  </script>
+   </head>
+   <body>
+      <table>
+         <thead>
+            <tr>
+               <th>Input</th>
+               <th>Output</th>
+               <th>Extra</th>
+            </tr>
+         </thead>
+         <tbody>
+            <tr id='1'>
+                <td input-row='1' input-type='store' class='myInputClass' height='auto' contenteditable='true' placeholder='Just Start Typing a storename'></td>
+                <td output-row='1' class='myOutputClass'></td>
+                <td extra-row='1' class='extra'></td>
+            </tr>
+         </tbody>
+      </table>
+   </body>
+</html>

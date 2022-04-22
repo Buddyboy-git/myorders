@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>jQuery Text Area Order Input</title>
+      <style>
+        .myInputClass {
+            width: 120px;
+        }
+        .myOutputClass {
+            width: 240px;
+        }
+        table, td{
+           margin: 0px;
+           border-collapse: collapse;
+           padding: 0px;
+           border-spacing: 0px;
+           vertical-align:top;
+         }
+         table th {
+           border: 1px solid #6C220B;
+           border-spacing: 0px;
+           padding: 0px;
+           text-align: left;
+         }
+         table#myOutputTableId {
+           border: 0px;
+           padding: 0px;
+           margin: 0px;
+           align: top;  
+         }
+         [contentEditable=true]:empty:before {
+            content: attr(placeholder);
+            opacity: 0.6;
+          }
+      </style>
+      <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script>
+        storeflag = true;
+        attribstart = "";
+        attribend   = "";
+        output_result = "";
+        var row = 0;
+        var storeIndex = 0;
+        var productIndex = 0;
+        var thisstore_id=0;
+
+
+        function getStore(thisstore) 
+        {
+//            alert("getStore: "+thisstore);
+            $.ajax({
+                url: 'ajax_getstore',
+                data: "store="+thisstore,
+                method: "GET",
+                dataType: "text",
+                cache: false,
+                success: function (data) {
+                    badjson = JSON.parse(data);
+                    myjson = badjson.replace("\\","");
+                    goodjson = JSON.parse(myjson);
+                    var markup ="";
+                    if (row > 0) {
+                        row=row+1;
+                        markup = markup + "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - blank<br></td></tr>";
+
+                    }
+                    if (goodjson.length > 1) {
+                        $.each(goodjson, function (thisname, thisvalue) {
+                            var output = attribstart+thisvalue.fields.name+attribend;
+                            markup = markup + "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - " +output+ "</td></tr>";
+                            row=row+1;
+//                            console.log(thisvalue.fields.id, thisvalue.fields.name);
+                        });     
+                    } else {
+                        row++;
+                        var output = attribstart+goodjson[0].fields.name+attribend;
+                       var markup = markup + "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - " +output+ "</td></tr>";
+              
+                    }
+                    thisstore_id = goodjson[0].pk;
+                //    alert(thisstore_id);
+                  $("table tbody#myOutputBodyId").append(markup);
+                  output_result = "";
+                                     
+                }, // End success.
+                error: function () {
+                    alert('error');
+                },
+            }); //End Ajax.
+            attribstart = "<b>";
+            attribend =   "</b>";
+            storeflag = false; //reset storeflag.
+            //row = row + 1;
+            //return output_result;
+        }
+        function getProduct(thisstore_id, thisproduct_nickname) 
+        {
+            qty = parseInt(thisproduct_nickname);
+            if (isNaN(qty)) {
+                qty = '1';
+            } else {
+                thisproduct_nickname = thisproduct_nickname.replace(qty,'');
+            }
+            //alert("store_id: "+thisstore_id+":"+thisproduct_nickname);
+            $.ajax({
+                url: 'ajax_getproduct',
+                data: 'store_id='+thisstore_id+'&qty='+qty+'&product_nickname='+thisproduct_nickname,
+                method: "GET",
+                dataType: "text",
+                cache: false,
+                success: function (data) {
+                    badjson = JSON.parse(data);
+                    myjson = badjson.replace("\\","");
+                    goodjson = JSON.parse(myjson);
+                    var markup ="";
+//                    if (row > 0) {
+//                        row=row+1;
+//                        markup = markup + "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - blank<br></td></tr>";
+//
+//                    }
+                    if (goodjson.length > 1) {
+                        $.each(goodjson, function (thisname, thisvalue) {
+                            var output = attribstart+thisvalue.fields.product_name+attribend;
+                            markup = markup + "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - " +output+ "<br></td></tr>";
+                            row=row+1;
+            //                            console.log(thisvalue.fields.id, thisvalue.fields.name);
+                        });     
+                    } else {
+                        row++;
+                        var output = attribstart+qty+' '+goodjson[0].fields.product_default_uom_code+' '+goodjson[0].fields.product_name+attribend;
+                    var markup = markup + "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - " +output+ "<br></td></tr>";
+            
+                    }
+                $("table tbody#myOutputBodyId").append(markup);
+                output_result = "";
+                                    
+                }, // End success.
+                error: function () {
+                    alert('error');
+                },
+            }); //End Ajax.
+        }
+        function display_result(data_output_result)
+        {
+            badjson = JSON.parse(data_output_result);
+            myjson = badjson.replace("\\","");
+            goodjson = JSON.parse(myjson);
+            var markup ="";
+//            if (goodjson.length > 1) {
+                $.each(goodjson, function (thisname, thisvalue) {
+                    row=row+1;
+                    var output = attribstart+thisvalue.fields.name+attribend;
+                    markup = markup + "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - " +output+ "<br></td></tr>";
+                    console.log(thisvalue.fields.id, thisvalue.fields.name);
+                });     
+//            } else {
+//                var output = attribstart+goodjson[0].fields.name+attribend;
+//               var markup = "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - " +output+ "<br></td></tr>";
+      
+//            }
+          $("table tbody#myOutputBodyId").append(markup);
+          output_result = "";
+
+        }
+      $(document).ready(function(){
+        document.getElementById('myInputId').focus();
+//        $(this).parents().siblings().find("#myInputId").focus();
+        // Inititialize lastkey so that the 1st entry is treated like a store name.
+        lastKey = 13; 
+
+        $("tbody").on('keypress', "#myInputId", (function(event){
+            if (event.which == 13) {    // Enter Key.
+                attribstart = "";
+                attribend   = "";
+                x = $("#myInputId").html().split('<br>');
+                y = x[x.length -1];
+                if (y.length > 0) {
+                    if (storeflag == true) {
+                        thisstore_id = getStore(y);
+                    } else {
+                        getProduct(thisstore_id,y); 
+                    }
+                }
+                if (lastKey == 13) {
+//                    alert("next pop is store name");
+                    storeflag = true;
+                }
+
+                //                display_result();
+
+
+           } else {
+
+           } //end if
+           lastKey = event.which;
+        }));         
+     });    
+  </script>
+   </head>
+   <body>
+             <form name="inputForm">
+      <table>
+         <thead>
+            <tr>
+               <th>Input</th>
+               <th>Output</th>
+               <th>Extra</th>
+            </tr>
+         </thead>
+         <tbody>
+            <tr>
+                <td id='myInputId' class='myInputClass' height='auto' contenteditable='true' placeholder='Just Start Typing a storename'></td>
+<!--                <td><textarea rows="20" cols="30" name="myInput" class="myInputClass" id="myInputId" autofocus></textarea></td> -->
+                <td class='myOutputClass'>
+                    <table id="myOutputTableId">
+                        <tbody id="myOutputBodyId">
+                            <tr><td  class="myOutputClass"></td></tr>
+                        </tbody>
+                    </table>
+                </td>
+                <td>Extra</td>
+            </tr>
+         </tbody>
+      </table>
+            </form>
+   </body>
+</html>

@@ -5,6 +5,7 @@ from django.shortcuts import HttpResponse
 from django.http import JsonResponse
 from django import template
 from django.views.generic import TemplateView
+from django.views.decorators.csrf import requires_csrf_token
 
 from django.core.serializers import serialize
 import datetime
@@ -12,8 +13,8 @@ import json
 from django.core.serializers.json import DjangoJSONEncoder
 from django.views.decorators.csrf import csrf_exempt,csrf_protect
 from main.models import store_history, thumanns_product_import, store
-@csrf_exempt
-
+#@csrf_exempt
+@requires_csrf_token
 
 class HomePageView(TemplateView):
     template_name = "order_input.html"
@@ -122,3 +123,20 @@ def ajax_getproduct(request):
 #        myserialized = serialize('json',list(queryset), fields=('store_id','name','product_itemnum','product_name','product_default_uom_code','supplier_name'))
         return HttpResponse("We Not Found")
 #        return render(request,"HTTP/1.1 404 Not Found")
+
+def ajax_getproducts(request):
+    print("HELLO")
+    myarray = json.loads(request.POST.get('dataArray'))
+    queryset = store.objects.filter(nickname__startswith=myarray[0])
+    mycount = queryset.count()
+    if mycount > 0:
+        for i in queryset:
+            print("nickname: "+i.nickname+" name:"+i.name)
+        myserialized = serialize('json',list(queryset), fields=('nickname','name'))
+        return JsonResponse(myserialized,safe=False)
+    print("GOODBYE")
+    return HttpResponse(" Store Not Found...")
+#    reqArray = json.loads(request.args.get('dataArray'))
+#    if mycount > 0:
+#        myserialized = serialize('json',list(queryset), fields=('store_id','name','product_itemnum','product_name','product_default_uom_code','supplier_name'))
+#    return JsonResponse(myserialized,safe=False)

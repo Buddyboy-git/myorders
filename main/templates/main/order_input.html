@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<meta http-equiv="Expires" content="Mon, 26 Jul 1997 05:00:00 GMT">
+<meta http-equiv="Pragma" content="no-cache">
+<meta name="csrf-token" content="{{ csrf_token }}">
 <html>
    <head>
       <title>jQuery Text Area Order Input</title>
@@ -36,14 +39,37 @@
       </style>
       <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
     <script>
-        storeflag = true;
-        attribstart = "";
-        attribend   = "";
-        output_result = "";
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        //const csrftoken = getCookie('csrftoken');
+
+        var storeflag = true;
+        var attrStart = "";
+        var attrEnd   = "";
+        var output_result = "";
         var row = 0;
         var storeIndex = 0;
         var productIndex = 0;
         var thisstore_id=0;
+        var entryPosition=1; // Order counter.
+        var thisentry="//";
+        var myStoreId = 0;
+        let goodjson = new Array();
+
+
 
         function appendNewRow(inputType)
         {
@@ -53,7 +79,7 @@
             document.getElementById(row).getElementsByClassName('myInputClass')[0].focus();
         }
 
-        function getStore(thisstore) 
+        function getStore(thisstore,entryPosition) 
         {
 //            alert("getStore: "+thisstore);
             $.ajax({
@@ -67,27 +93,43 @@
                     var markup ="";
                     if (goodjson.length > 1) {
                         $.each(goodjson, function (thisname, thisvalue) {
-                            var output = attribstart+thisvalue.fields.name+attribend;
+                            var output = attrStart+thisvalue.fields.name+attrEnd;
                             markup = markup + "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - " +output+ "</td></tr>";
                         });     
                     } else {
-                        $('[input-row="' + row + '"]').parent().attr('store-id', goodjson[0].pk); 
+                        $('[input-row="' + row + '"]').parent().attr('entry-position', entryPosition); 
+                        $('[input-row="' + row + '"]').parent().attr('store-id', goodjson[0].pk);
+                        $('[input-row="' + row + '"]').addClass(entryPosition);
+                        $('[input-row="' + row + '"]').attr('entry-position', entryPosition);
                         $('[input-row="' + row + '"]').attr('store-id', goodjson[0].pk);
+                        $('[input-row="' + row + '"]').attr('input-type', 'store');
+//                        $('[output-row="' + row + '"]').attr('entry-position', entryPosition);
                         $('[output-row="' + row + '"]').attr('store-id', goodjson[0].pk);
-                        $('[output-row="' + row + '"]').attr('input-type', 'store');
-                        $('[output-row="' + row + '"]').html(attribstart+goodjson[0].fields.name+attribend);
+                        $('[output-row="' + row + '"]').attr('output-type', 'store');
+                        $('[output-row="' + row + '"]').html(attrStart+goodjson[0].fields.name+attrEnd);
+                        $('[input-row="' + row + '"]').html(thisstore);
                     }
                     thisstore_id = goodjson[0].pk;
+//                    $("[entry-position='"+entryPosition+"'] [input-type='product'].myInputClass").css("background-color", "blue");
+                        
                     if ($('table tbody tr').length == row) {
                         appendNewRow('product');
                     }
                 }, // End success.
-                error: function () {
-                    alert('error');
+                error: function (xhr, httpStatusMessage, customErrorMessage) {
+//                    $('[input-row="' + row + '"]').attr('entry-position', entryPosition); 
+//                    $('[output-row="' + row + '"]').attr('entry-position', entryPosition); 
+                    $('[output-row="' + row + '"]').attr('output-type', 'store');
+                    $('[output-row="' + row + '"]').attr('store-id', thisstore_id);
+                    $('[output-row="' + row + '"]').html("Not Found");
+                    $('[extra-row="' + row + '"]').html("Error");
+                    if ($('table tbody tr').length == row) {
+                        appendNewRow('product');
+                    }
                 },
             }); //End Ajax.
-            attribstart = "<b>";
-            attribend =   "</b>";
+            attrStart = "<b>";
+            attrEnd =   "</b>";
             storeflag = false; //reset storeflag.
             return thisstore_id;
         } // End Function.
@@ -111,21 +153,26 @@
                     var markup ="";
                     if (goodjson.length > 1) {
                         $.each(goodjson, function (thisname, thisvalue) {
-                            var output = attribstart+thisvalue.fields.product_name+attribend;
+                            var output = attrStart+thisvalue.fields.product_name+attrEnd;
                             markup = markup + "<tr id='"+row+"'><td class='dyninput'>row:"+row+" - " +output+ "<br></td></tr>";
                             row=row+1;
                         });     
                     } else {
 
                     //    $('[input-row="' + row + '"]').html(thisproduct_nickname); // Fixes an ajax bug.
-                        $('[output-row="' + row + '"]').attr('input-type', 'product');
+                        $('[input-row="' + row + '"]').parent().attr('entry-position', entryPosition); 
+                    $('[input-row="' + row + '"]').attr('entry-position', entryPosition); 
+//                    $('[output-row="' + row + '"]').attr('entry-position', entryPosition); 
+                        $('[input-row="' + row + '"]').addClass(entryPosition);
+                        $('[input-row="' + row + '"]').attr('store-id', thisstore_id);
+                        $('[output-row="' + row + '"]').attr('output-type', 'product');
                         $('[output-row="' + row + '"]').attr('store-id', thisstore_id);
-                        thisoutput = attribstart;
+                        thisoutput = attrStart;
                         thisoutput += qty;
                         thisoutput += ' '+goodjson[0].fields.product_default_uom_code;
                         thisoutput += ' '+goodjson[0].fields.product_itemnum;
                         thisoutput += ' '+goodjson[0].fields.product_name;
-                        thisoutput += attribend;
+                        thisoutput += attrEnd;
                         $('[output-row="' + row + '"]').html(thisoutput);
                         $('[extra-row="' + row + '"]').html(goodjson[0].fields.supplier_name);
                         
@@ -136,7 +183,10 @@
                                 
                 }, // End success.
                 error: function (xhr, httpStatusMessage, customErrorMessage) {
-                    $('[output-row="' + row + '"]').attr('input-type', 'product');
+                    $('[input-row="' + row + '"]').parent().attr('entry-position', entryPosition); 
+                    $('[input-row="' + row + '"]').attr('entry-position', entryPosition); 
+//                    $('[output-row="' + row + '"]').attr('entry-position', entryPosition); 
+                    $('[output-row="' + row + '"]').attr('output-type', 'product');
                     $('[output-row="' + row + '"]').attr('store-id', thisstore_id);
                     $('[output-row="' + row + '"]').html("Not Found");
                     $('[extra-row="' + row + '"]').html("Error");
@@ -149,15 +199,68 @@
             }); //End Ajax.
 
         } // End Function getProduct.
+//                headers: {'csrfmiddlewaretoken': getCookie('csrftoken')},
+
+        //                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
+
+        function getProducts(dataArray) {
+                $.ajax({
+                url: 'ajax_getproducts',
+                data:   {dataArray},
+                type: "POST",
+                dataType: "json",
+                cache: false,
+                headers: {'X-CSRFToken': getCookie('csrftoken')},
+                success: function (data) {
+                    goodjson = JSON.parse(data);
+                    var markup ="";
+                    if (goodjson.length > 1) {
+                        $.each(goodjson, function (thisname, thisvalue) {
+                            markup+= '<button type="button" onclick="javascript:getStore('+"'"+thisvalue.fields.nickname+"'"+','+entryPosition+')">'+thisvalue.fields.nickname+":"+thisvalue.fields.name+"</button><br>";
+
+                            console.log("nickname="+thisvalue.fields.nickname+" name="+thisvalue.fields.name);
+                        });
+                    } else {
+                            markup = goodjson[0].fields.name;
+                    }
+                        $('[output-row="' + row + '"]').html(markup);
+                },
+                error: function (xhr, httpStatusMessage, customErrorMessage) {
+//                    alert(xhr);
+                },
+            });
+        } // End Function getProducts.
+
+        function tableToArray(entryPosition) {
+            
+            var convertedIntoArray = [];
+            $("[entry-position='"+entryPosition+"'] [input-type='product'].myInputClass").each(function() {
+               var rowDataArray = [];
+               var actualData = $(this).find('td');
+               if (actualData.length > 0) {
+                  actualData.each(function() {
+                     rowDataArray.push($(this).text());
+                  });
+                  convertedIntoArray.push(rowDataArray);
+               }
+            });
+            console.log(convertedIntoArray);
+         
+        }
+
+        
 
 
     $(document).ready(function(){
+
         document.getElementById('1').getElementsByClassName('myInputClass')[0].focus();
         lastKey = 13; 
 
         $(document).on("click",".myInputClass", function () {
             row = $(this).attr('input-row'); 
             thisstore_id = $(this).attr('store-id');
+            entryPosition = $('[input-row="' + row + '"]').attr('entry-position');
+            thisentry = $(this).text();
         });
         document.addEventListener("keydown", (e) => {
             switch (e.key) {
@@ -165,14 +268,18 @@
                     if (row > 1) {
                         row--;
                         thisstore_id = $('[output-row="' + row + '"]').attr('store-id');
+                        entryPosition = $('[input-row="' + row + '"]').attr('entry-position');
                         document.getElementById(row).getElementsByClassName('myInputClass')[0].focus();
+                        thisentry = $(this).text();
                     }
                 break;
                 case "ArrowDown":
                     if (row < $('table tbody tr').length) {
                         row++;
                         thisstore_id = $('[output-row="' + row + '"]').attr('store-id');
+                        entryPosition = $('[input-row="' + row + '"]').attr('entry-position');
                         document.getElementById(row).getElementsByClassName('myInputClass')[0].focus();
+                        thisentry = $(this).text();
                     }
                 break;
             }
@@ -181,27 +288,43 @@
         $("tbody").on('keypress', ".myInputClass", (function(event){
             if (event.which == 13) {    // Enter Key.
                 event.preventDefault(); // prevents <br> from being inserted.
-                attribstart = "";
-                attribend   = "";
+                attrStart = "";
+                attrEnd   = "";
                 row = Number($(this).attr('input-row'));
-                thishtml = $(this).html();
+                if ($(this).attr('input-type') == "store") {
+                    storeflag = true;
+                }
                 if ($(this).text().length > 0) {
                     x = $(this).text();
                     if (storeflag == true) {
-                        thisstore_id = getStore(x);
-                        temprow = row + 1;
-                        tempstoreid = $('[output-row="' + temprow + '"]').attr('store-id')
-//                        while ( tempstoreid == thisstore_id) {
-//                            temprow++;
-//                            tempstoreid = $('[output-row="' + temprow + '"]').attr('store-id')
-//                          }
+                        thisstore_id = getStore(x,entryPosition);
+                        if (x != thisentry && thisentry != "//") {
+//                            loadArray(entryPosition);
+//                           prodcount = $("[entry-position='"+entryPosition+"'] [input-type='product'].myInputClass").length;
+//                         row++;
+//                           getProduct(thisstore_id,$(this).text());
+                            myArray = [];
+                            i=0;
+                            $("[entry-position='"+entryPosition+"'].myInputClass").each(function() {
+                                myArray[i] = $(this).text();
+                                i++;
+                            });
+                            console.log(JSON.stringify(myArray));
+                            getProducts(JSON.stringify(myArray));
+                        }
                     } else {
                         getProduct(thisstore_id,x); 
                     }
                 } else {
                     $(this).text("---");
                     $(this).attr('store-id','---');
+                    $(this).attr('input-type','break');
+                    $(this).addClass('stop');
+                    $(this).parent().addClass('stop');
                     $(this).parent().attr('store-id', '---');
+                    $(this).parent().attr('entry-position', entryPosition); 
+                    $(this).attr('entry-position', entryPosition); 
+                    entryPosition = Number($('[input-row="' + row + '"]').attr('entry-position'))+1;
                     appendNewRow('store');
                     storeflag = true;
                     $('[input-row="' + row + '"]').find('br').remove(); // Fixes an ajax bug.

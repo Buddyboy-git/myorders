@@ -31,4 +31,5 @@ urlpatterns = [
     path('ajax_view', views.ajax_view),
     path('ajax_getstore', views.ajax_getstore),
     path('ajax_getproduct', views.ajax_getproduct),
+    path('ajax_getproducts', views.ajax_getproducts),
     ] 

@@ -132,7 +132,7 @@ def ajax_getproducts(request):
     if mycount > 0:
         for i in queryset:
             print("nickname: "+i.nickname+" name:"+i.name)
-        myserialized = serialize('json',list(queryset), fields=('nickname','name'))
+        myserialized = serialize('json',list(queryset), fields=('id','nickname','name'))
         return JsonResponse(myserialized,safe=False)
     print("GOODBYE")
     return HttpResponse(" Store Not Found...")

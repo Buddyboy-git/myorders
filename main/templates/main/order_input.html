@@ -67,7 +67,7 @@
         var entryPosition=1; // Order counter.
         var thisentry="//";
         var myStoreId = 0;
-        let goodjson = new Array();
+        let products = new Array();
 
 
 
@@ -87,6 +87,7 @@
                 data: "store="+thisstore,
                 method: "GET",
                 dataType: "json",
+                async: false,
                 cache: false,
                 success: function (data) {
                     goodjson = JSON.parse(data);
@@ -110,15 +111,12 @@
                         $('[input-row="' + row + '"]').html(thisstore);
                     }
                     thisstore_id = goodjson[0].pk;
-//                    $("[entry-position='"+entryPosition+"'] [input-type='product'].myInputClass").css("background-color", "blue");
                         
                     if ($('table tbody tr').length == row) {
                         appendNewRow('product');
                     }
                 }, // End success.
                 error: function (xhr, httpStatusMessage, customErrorMessage) {
-//                    $('[input-row="' + row + '"]').attr('entry-position', entryPosition); 
-//                    $('[output-row="' + row + '"]').attr('entry-position', entryPosition); 
                     $('[output-row="' + row + '"]').attr('output-type', 'store');
                     $('[output-row="' + row + '"]').attr('store-id', thisstore_id);
                     $('[output-row="' + row + '"]').html("Not Found");
@@ -147,6 +145,7 @@
                 data: 'store_id='+thisstore_id+'&qty='+qty+'&product_nickname='+thisproduct_nickname,
                 method: "GET",
                 dataType: "json",
+                async: false,
                 cache: false,
                 success: function (data) {
                     goodjson = JSON.parse(data);
@@ -159,10 +158,8 @@
                         });     
                     } else {
 
-                    //    $('[input-row="' + row + '"]').html(thisproduct_nickname); // Fixes an ajax bug.
                         $('[input-row="' + row + '"]').parent().attr('entry-position', entryPosition); 
-                    $('[input-row="' + row + '"]').attr('entry-position', entryPosition); 
-//                    $('[output-row="' + row + '"]').attr('entry-position', entryPosition); 
+                        $('[input-row="' + row + '"]').attr('entry-position', entryPosition); 
                         $('[input-row="' + row + '"]').addClass(entryPosition);
                         $('[input-row="' + row + '"]').attr('store-id', thisstore_id);
                         $('[output-row="' + row + '"]').attr('output-type', 'product');
@@ -185,7 +182,6 @@
                 error: function (xhr, httpStatusMessage, customErrorMessage) {
                     $('[input-row="' + row + '"]').parent().attr('entry-position', entryPosition); 
                     $('[input-row="' + row + '"]').attr('entry-position', entryPosition); 
-//                    $('[output-row="' + row + '"]').attr('entry-position', entryPosition); 
                     $('[output-row="' + row + '"]').attr('output-type', 'product');
                     $('[output-row="' + row + '"]').attr('store-id', thisstore_id);
                     $('[output-row="' + row + '"]').html("Not Found");
@@ -199,14 +195,12 @@
             }); //End Ajax.
 
         } // End Function getProduct.
-//                headers: {'csrfmiddlewaretoken': getCookie('csrftoken')},
-
-        //                headers: {'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')},
 
         function getProducts(dataArray) {
                 $.ajax({
                 url: 'ajax_getproducts',
                 data:   {dataArray},
+                async: false,
                 type: "POST",
                 dataType: "json",
                 cache: false,
@@ -224,31 +218,20 @@
                             markup = goodjson[0].fields.name;
                     }
                         $('[output-row="' + row + '"]').html(markup);
+                        $('[entry-position="'+ entryPosition + '"]').attr('store-id',goodjson[0].pk);
+                        products = [goodjson[0].pk];
+                        $('[entry-position="'+ entryPosition + '"][input-type="product"]').each(function(){
+                            $(this).attr('store-id',goodjson[0].pk);
+                            products.push($(this).text());
+                            console.log("entry:" + $(this).text());
+                        });
+                        console.log("getProducts:"+products);
                 },
                 error: function (xhr, httpStatusMessage, customErrorMessage) {
 //                    alert(xhr);
                 },
             });
         } // End Function getProducts.
-
-        function tableToArray(entryPosition) {
-            
-            var convertedIntoArray = [];
-            $("[entry-position='"+entryPosition+"'] [input-type='product'].myInputClass").each(function() {
-               var rowDataArray = [];
-               var actualData = $(this).find('td');
-               if (actualData.length > 0) {
-                  actualData.each(function() {
-                     rowDataArray.push($(this).text());
-                  });
-                  convertedIntoArray.push(rowDataArray);
-               }
-            });
-            console.log(convertedIntoArray);
-         
-        }
-
-        
 
 
     $(document).ready(function(){
@@ -267,7 +250,7 @@
                 case "ArrowUp":
                     if (row > 1) {
                         row--;
-                        thisstore_id = $('[output-row="' + row + '"]').attr('store-id');
+                        thisstore_id = $('[input-row="' + row + '"]').attr('store-id');
                         entryPosition = $('[input-row="' + row + '"]').attr('entry-position');
                         document.getElementById(row).getElementsByClassName('myInputClass')[0].focus();
                         thisentry = $(this).text();
@@ -276,7 +259,7 @@
                 case "ArrowDown":
                     if (row < $('table tbody tr').length) {
                         row++;
-                        thisstore_id = $('[output-row="' + row + '"]').attr('store-id');
+                        thisstore_id = $('[input-row="' + row + '"]').attr('store-id');
                         entryPosition = $('[input-row="' + row + '"]').attr('entry-position');
                         document.getElementById(row).getElementsByClassName('myInputClass')[0].focus();
                         thisentry = $(this).text();
@@ -297,20 +280,23 @@
                 if ($(this).text().length > 0) {
                     x = $(this).text();
                     if (storeflag == true) {
-                        thisstore_id = getStore(x,entryPosition);
                         if (x != thisentry && thisentry != "//") {
-//                            loadArray(entryPosition);
-//                           prodcount = $("[entry-position='"+entryPosition+"'] [input-type='product'].myInputClass").length;
-//                         row++;
-//                           getProduct(thisstore_id,$(this).text());
                             myArray = [];
                             i=0;
                             $("[entry-position='"+entryPosition+"'].myInputClass").each(function() {
                                 myArray[i] = $(this).text();
                                 i++;
                             });
-                            console.log(JSON.stringify(myArray));
+                            console.log("line331: "+JSON.stringify(myArray));
                             getProducts(JSON.stringify(myArray));
+                            resetrow = row;
+                            $('[entry-position="'+ entryPosition + '"][input-type="product"].myInputClass').each(function(){
+                                row = $(this).attr("input-row");
+                                getProduct($(this).attr('store-id'),$(this).text());
+                            });
+                            row = resetrow;
+                        } else {
+                            thisstore_id = getStore(x,entryPosition);
                         }
                     } else {
                         getProduct(thisstore_id,x); 
